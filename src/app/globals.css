@@ -3,6 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
 }
 
 @theme inline {
@@ -16,6 +19,9 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
   }
 }
 
@@ -23,4 +29,105 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Typing animation */
+.dot-typing {
+  position: relative;
+  left: -9999px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  color: #3b82f6;
+  box-shadow: 9984px 0 0 0 #3b82f6, 9994px 0 0 0 #3b82f6, 10004px 0 0 0 #3b82f6;
+  animation: dot-typing 1.5s infinite linear;
+}
+
+@keyframes dot-typing {
+  0% {
+    box-shadow: 9984px 0 0 0 #3b82f6, 9994px 0 0 0 #3b82f6, 10004px 0 0 0 #3b82f6;
+  }
+  16.667% {
+    box-shadow: 9984px -6px 0 0 #3b82f6, 9994px 0 0 0 #3b82f6, 10004px 0 0 0 #3b82f6;
+  }
+  33.333% {
+    box-shadow: 9984px 0 0 0 #3b82f6, 9994px 0 0 0 #3b82f6, 10004px 0 0 0 #3b82f6;
+  }
+  50% {
+    box-shadow: 9984px 0 0 0 #3b82f6, 9994px -6px 0 0 #3b82f6, 10004px 0 0 0 #3b82f6;
+  }
+  66.667% {
+    box-shadow: 9984px 0 0 0 #3b82f6, 9994px 0 0 0 #3b82f6, 10004px 0 0 0 #3b82f6;
+  }
+  83.333% {
+    box-shadow: 9984px 0 0 0 #3b82f6, 9994px 0 0 0 #3b82f6, 10004px -6px 0 0 #3b82f6;
+  }
+  100% {
+    box-shadow: 9984px 0 0 0 #3b82f6, 9994px 0 0 0 #3b82f6, 10004px 0 0 0 #3b82f6;
+  }
+}
+
+/* Style markdown content */
+.prose pre {
+  background-color: #f1f5f9;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.prose code {
+  background-color: #f1f5f9;
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+}
+
+.prose pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.prose a {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.prose h1, .prose h2, .prose h3, .prose h4 {
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose h1 {
+  font-size: 1.5rem;
+}
+
+.prose h2 {
+  font-size: 1.25rem;
+}
+
+.prose h3 {
+  font-size: 1.125rem;
+}
+
+.prose ul, .prose ol {
+  padding-left: 1.5em;
+}
+
+.prose ul {
+  list-style-type: disc;
+}
+
+.prose ol {
+  list-style-type: decimal;
+}
+
+.prose li {
+  margin-top: 0.25em;
+  margin-bottom: 0.25em;
+}
+
+.prose p {
+  margin-top: 1em;
+  margin-bottom: 1em;
 }

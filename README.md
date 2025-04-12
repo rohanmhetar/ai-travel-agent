@@ -1,36 +1,142 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Brainbase Travel Agent
 
-## Getting Started
+An AI-powered travel agent that uses real-time Amadeus API data to search for flights, hotels, activities, and transfers.
 
-First, run the development server:
+## Quick Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. **Clone & Install**
+   ```bash
+   git clone https://github.com/yourusername/travel-agent.git
+   cd travel-agent
+   npm install
+   ```
+
+2. **Set Up API Keys**
+   - Create a `.env.local` file in the project root:
+   ```
+   # OpenAI API Key (Required)
+   OPENAI_API_KEY=your_openai_api_key_here
+
+   # Amadeus API Credentials (Required)
+   AMADEUS_API_KEY=your_amadeus_api_key_here
+   AMADEUS_API_SECRET=your_amadeus_api_secret_here
+   ```
+
+3. **Start Development Server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Access Application**
+   - Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Detailed Setup Guide
+
+### Prerequisites
+- Node.js 18+ and npm installed
+- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+- Amadeus API key and secret (Steps below)
+
+### Getting Amadeus API Credentials
+1. Create a free account at [Amadeus for Developers](https://developers.amadeus.com/)
+2. After login, navigate to "My Self-Service Workspace"
+3. Create a new application with the following APIs enabled:
+   - Flight Offers Search
+   - Hotel Search
+   - Points of Interest
+   - Airport & City Search
+   - Transfer Search 
+4. After creating the application, copy the API Key and API Secret
+
+### Environment Variables Explained
+- `OPENAI_API_KEY`: Your OpenAI API key for AI chat capabilities
+- `AMADEUS_API_KEY`: Your Amadeus API key from the developer portal
+- `AMADEUS_API_SECRET`: Your Amadeus API secret from the developer portal
+
+### Troubleshooting
+- **API Rate Limits**: Amadeus free tier has rate limits (5 calls/second, 5000 calls/month)
+- **CORS Issues**: Run the app on http://localhost:3000 to avoid CORS problems
+- **OpenAI Errors**: Check if your OpenAI API key is valid and has sufficient credits
+
+## Usage Guide
+
+### Example Queries
+- "Find flights from NYC to Paris from May 10 to May 17, 2025"
+- "Show me hotels in London near the city center"
+- "What activities are available in Barcelona next week?"
+- "I need a transfer from CDG airport to the Eiffel Tower"
+- "Help me plan a trip to Rome for next month"
+
+### Features
+- **Real-time Data**: All flight, hotel, activity, and transfer information is from live Amadeus APIs
+- **Multi-step Trip Planning**: The system guides users through booking flights, hotels, activities and transfers
+- **Interactive Results**: Sidebars display detailed search results that can be further explored
+- **Show Your Work**: See the API calls and reasoning behind each recommendation
+
+## Development Information
+
+### Project Structure
+```
+travel-agent/
+├── public/           # Static assets
+├── src/
+│   ├── app/          # Next.js app router files
+│   │   ├── api/      # API routes for backend functionality
+│   │   │   ├── chat/           # Main chat API endpoint
+│   │   │   ├── chat-status/    # API status tracking
+│   │   │   └── chat/stream/    # Streaming API endpoint
+│   ├── components/   # React components
+│   │   ├── Chat.tsx            # Main chat interface
+│   │   ├── FlightResultsSidebar.tsx  # Flight results display
+│   │   └── TravelResults.tsx   # Hotel results display
+│   ├── utils/        # Utility functions
+│   │   ├── amadeus.ts          # Amadeus API client
+│   │   ├── config.ts           # Configuration settings
+│   │   ├── dates.ts            # Date formatting helpers
+│   │   └── openai.ts           # OpenAI API integration
+│   └── app/page.tsx  # Main application page
+└── .env.local        # Environment variables (create this)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Key Technologies
+- **Frontend**: Next.js 14, React, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **APIs**: OpenAI API (GPT models), Amadeus Travel APIs
+- **Data Handling**: TypeScript, JSON
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Customization
+- Edit `src/utils/config.ts` to adjust:
+  - AI models (GPT-4o, GPT-3.5-Turbo)
+  - API response limits
+  - UI preferences
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
+MIT
 
-## Learn More
+# Travel Agent Performance Improvements
 
-To learn more about Next.js, take a look at the following resources:
+This project includes several optimizations to make the chat interface more responsive and efficient:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Performance Enhancements
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **GPT-4o-mini Integration**: Using the faster, more efficient GPT-4o-mini model by default for better response times and reduced token usage.
 
-## Deploy on Vercel
+2. **API Response Compression**: All API responses are heavily compressed to reduce token usage:
+   - Limiting arrays to 1-2 items per type
+   - Reducing object nesting depth
+   - Truncating long string values
+   - Removing unnecessary data like dictionaries and metadata
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3. **Configurable Settings**: New configuration file (`src/utils/config.ts`) providing centralized control over:
+   - Model selection (gpt-4o-mini, gpt-4-turbo, gpt-3.5-turbo)
+   - Response token limits
+   - API response compression settings
+   - Maximum results per API type
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4. **Improved API Call Visibility**: "Show Your Work" section always displays for travel-related queries, even when no API calls were made or when they fail.
+
+## Usage
+
+The system is designed to maintain context while significantly reducing token usage. This makes it much more responsive and cost-effective, especially for complex travel queries that involve multiple API calls.
+
+For advanced users who need full context, the POWERFUL model option can be enabled in the configuration.
