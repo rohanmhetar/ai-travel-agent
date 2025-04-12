@@ -29,6 +29,7 @@ interface Message {
   id: string;
   isStreaming?: boolean;
   amadeusApiCalls?: AmadeusApiCall[];
+  apiCalls?: AmadeusApiCall[];
   apiName?: string;
   endpoint?: string;
   requestData?: any;
@@ -1716,7 +1717,17 @@ Let me know if you have any questions about this transfer service!
             
             // Show all API calls for this message, not just relevant ones
             // This ensures we always show API calls, whether they're relevant or failed
-            const apiCallsToShow = message.amadeusApiCalls || [];
+            const apiCallsToShow = message.apiCalls || [];
+            
+            // Check if we should show API calls from processingSteps
+            let hasApiCallInProcessing = false;
+            if (processingSteps.some(step => 
+              step.includes('searchActivities') || 
+              step.includes('Using the searchActivities API') ||
+              step.includes('Finding activities') ||
+              step.includes('I\'m using the searchActivities API'))) {
+              hasApiCallInProcessing = true;
+            }
             
             return (
               <div key={message.id}>
@@ -1756,18 +1767,42 @@ Let me know if you have any questions about this transfer service!
                     </button>
                     {message.showApiDetails && (
                       <div className="space-y-2">
-                        {apiCallsToShow.length > 0 ? (
-                          apiCallsToShow.map((apiCall, index) => (
-                            <div key={index}>
+                        {(apiCallsToShow.length > 0 || (activityResults && hasApiCallInProcessing)) ? (
+                          apiCallsToShow.length > 0 ? (
+                            apiCallsToShow.map((apiCall: AmadeusApiCall, index: number) => (
+                              <div key={index}>
+                                <ApiCallDetails
+                                  apiName={apiCall.apiName || "Unknown API"}
+                                  endpoint={apiCall.endpoint || "Unknown endpoint"}
+                                  requestData={apiCall.requestData || { error: "No request data available" }}
+                                  responseData={apiCall.responseData || { error: "No response data available" }}
+                                  isLoading={message.isStreaming}
+                                />
+                              </div>
+                            ))
+                          ) : activityResults && hasApiCallInProcessing ? (
+                            <div key="activity-api">
                               <ApiCallDetails
-                                apiName={apiCall.apiName || "Unknown API"}
-                                endpoint={apiCall.endpoint || "Unknown endpoint"}
-                                requestData={apiCall.requestData || { error: "No request data available" }}
-                                responseData={apiCall.responseData || { error: "No response data available" }}
-                                isLoading={message.isStreaming}
+                                apiName="searchActivities"
+                                endpoint="/v1/shopping/activities"
+                                requestData={{ 
+                                  latitude: activityResults[0]?.geoCode?.latitude || 35.6762,
+                                  longitude: activityResults[0]?.geoCode?.longitude || 139.6503,
+                                  radius: 20
+                                }}
+                                responseData={{ 
+                                  data: activityResults.map(result => ({
+                                    type: result.type,
+                                    id: result.id,
+                                    name: result.name,
+                                    description: result.shortDescription
+                                  })),
+                                  meta: { count: activityResults.length }
+                                }}
+                                isLoading={false}
                               />
                             </div>
-                          ))
+                          ) : null
                         ) : (
                           <div className="bg-neutral-50 dark:bg-neutral-900 p-2 rounded border border-neutral-200 dark:border-neutral-800">
                             <div className="flex items-center gap-2 mb-1 font-medium text-neutral-700 dark:text-neutral-300">

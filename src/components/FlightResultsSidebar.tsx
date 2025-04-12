@@ -266,13 +266,6 @@ function FlightCard({
                 <FiChevronRight className="ml-1" />
               )}
             </button>
-            <button
-              onClick={handleRequestDetails}
-              className="px-3 py-1 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded-md flex items-center transition-colors"
-            >
-              More info
-              <FiExternalLink className="ml-1" />
-            </button>
           </div>
         </div>
       </div>
