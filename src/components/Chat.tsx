@@ -317,7 +317,12 @@ export default function Chat() {
     setInput('');
     setIsLoading(true);
     setIsProcessing(true);
-    setProcessingSteps(['Analyzing your request...']);
+    
+    // Set initial detailed processing step with AI reasoning
+    const initialProcessingStep = `Analyzing request: "${input.length > 80 ? input.substring(0, 80) + '...' : input}"
+I need to determine what travel information the user is seeking. This will help me decide which API to call (flights, hotels, activities, or transfers).`;
+    
+    setProcessingSteps([initialProcessingStep]);
 
     try {
       // Prepare request data
@@ -329,7 +334,7 @@ export default function Chat() {
       };
 
       // Add API call step
-      setProcessingSteps(prev => [...prev, 'Understanding your travel needs...']);
+      setProcessingSteps(prev => [...prev, `Now I'm evaluating the user query and the conversation context to understand what travel needs they have. This step involves analyzing any destination mentions, dates, or specific preferences to formulate a proper API request.`]);
 
       // Call API
       const response = await fetch('/api/chat', {
@@ -349,24 +354,51 @@ export default function Chat() {
       // Process response data
       let responseMessage = responseData.choices[0].message.content;
       
-      // Add response received step
-      setProcessingSteps(prev => [...prev, 'Gathering detailed information...']);
+      // Add response received step with reasoning
+      setProcessingSteps(prev => [...prev, `Based on the query, I need to gather detailed travel information. This might include checking available flights, hotel options, activities, or transfers depending on what the user asked about. I'll identify the entities in the request and prepare the appropriate search parameters.`]);
       
       // Extract Amadeus API calls
       const amadeusApiCalls = extractAmadeusApiCalls(responseData);
       
-      // Add API call steps for each Amadeus call
+      // Add API call steps for each Amadeus call with detailed reasoning
       amadeusApiCalls.forEach(call => {
-        setProcessingSteps(prev => [...prev, `Searching for ${call.apiName.replace('search', '').toLowerCase()} options...`]);
+        let reasoningStep = '';
+        
+        switch(call.apiName) {
+          case 'searchFlights':
+            reasoningStep = `The user is interested in flight options ${call.requestData.originLocationCode ? `from ${call.requestData.originLocationCode}` : ''} ${call.requestData.destinationLocationCode ? `to ${call.requestData.destinationLocationCode}` : ''}. I'll search for available flights ${call.requestData.departureDate ? `departing on ${call.requestData.departureDate}` : ''} ${call.requestData.returnDate ? `and returning on ${call.requestData.returnDate}` : ''}. I need to filter out results from non-operational airlines and prioritize options that match the user's preferences.`;
+            break;
+            
+          case 'searchHotelsByCity':
+            reasoningStep = `Looking for accommodations in ${call.requestData.cityCode || 'the specified city'}. I'll filter the results based on the user's preferences ${call.requestData.ratings ? `for ${call.requestData.ratings.replace(/,/g, '-')} star hotels` : ''} ${call.requestData.amenities ? `with amenities like ${call.requestData.amenities.replace(/,/g, ', ')}` : ''}. This will provide suitable lodging options for their trip.`;
+            break;
+            
+          case 'searchHotelsByGeocode':
+            reasoningStep = `Searching for hotels near coordinates (${call.requestData.latitude}, ${call.requestData.longitude}). This location-based search will find accommodation options within ${call.requestData.radius || 'a reasonable'} km radius of the specified point, which should give the user good options near their desired location.`;
+            break;
+            
+          case 'searchActivities':
+            reasoningStep = `Finding activities and attractions near coordinates (${call.requestData.latitude}, ${call.requestData.longitude}) within a ${call.requestData.radius || '20'} km radius. This will help the user discover things to do at their destination, including tours, experiences, and tourist attractions.`;
+            break;
+            
+          case 'searchTransfers':
+            reasoningStep = `Searching for transportation options ${call.requestData.startLocationCode ? `from ${call.requestData.startLocationCode}` : ''} ${call.requestData.endLocationCode ? `to ${call.requestData.endLocationCode}` : ''}. This will provide the user with options for getting between locations, such as airport transfers or city transportation.`;
+            break;
+            
+          default:
+            reasoningStep = `Performing a ${call.apiName} search with the parameters extracted from the user's request. This will provide relevant travel information that matches their specific needs.`;
+        }
+        
+        setProcessingSteps(prev => [...prev, reasoningStep]);
       });
       
       // Also directly extract any API calls included in the response metadata
-      // This is a more reliable way to get API calls that were made on the backend
       let directApiCalls: AmadeusApiCall[] = [];
       if (responseData.apiCalls && Array.isArray(responseData.apiCalls)) {
         directApiCalls = responseData.apiCalls;
         directApiCalls.forEach(call => {
-          setProcessingSteps(prev => [...prev, `Called Amadeus API (direct): ${call.apiName}`]);
+          let callDescription = `I'm using the ${call.apiName} API to retrieve real-time travel data that matches the user's request. This will give them accurate, up-to-date information for their travel planning.`;
+          setProcessingSteps(prev => [...prev, callDescription]);
         });
       }
       
@@ -862,90 +894,37 @@ Using this information, provide a detailed and helpful response about this activ
         }
       }
 
+      // Once processing is complete, add a summary step
+      setTimeout(() => {
+        setProcessingSteps(prev => [
+          ...prev, 
+          `Now I'll formulate a response that helps the user make informed travel decisions. I'll present the most relevant options first, highlight important details like prices and times, and suggest next steps in their travel planning process.`
+        ]);
+        setIsProcessing(false);
+      }, 500);
+
+      // Update assistant message with API response
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === assistantMessage.id
-            ? newMessage
+            ? {
+                ...msg,
+                content: responseMessage,
+                isStreaming: false,
+                showApiDetails: combinedApiCalls.length > 0,
+                apiCalls: combinedApiCalls,
+              }
             : msg
         )
       );
       
-      // If no API calls were found but there SHOULD be API calls,
-      // this means we need to force the UI to update once the OpenAI response provides them
-      if (combinedApiCalls.length === 0 && 
-          /\b(activity|activities|flight|hotel|transfer)/i.test(input.toLowerCase())) {
-        console.log('No API calls found but travel query detected - API calls might be coming later');
-        
-        // Check back after a short delay to see if we've received API calls in another response
-        setTimeout(async () => {
-          console.log('Checking for API calls in followup response');
-          
-          try {
-            // Simplified request to just check state
-            const checkResponse = await fetch('/api/chat-status?filter=true&query=' + encodeURIComponent(input), {
-              method: 'GET',
-            });
-            
-            if (checkResponse.ok) {
-              const statusData = await checkResponse.json();
-              
-              if (statusData.apiCalls && statusData.apiCalls.length > 0) {
-                console.log('Found API calls in status check:', statusData.apiCalls);
-                
-                // Update the message with the API calls
-                setMessages((prev) =>
-                  prev.map((msg) =>
-                    msg.id === assistantMessage.id
-                      ? {
-                          ...msg,
-                          amadeusApiCalls: statusData.apiCalls
-                        }
-                      : msg
-                  )
-                );
-                
-                // Check for hotel results in delayed API calls
-                statusData.apiCalls.forEach((apiCall: any) => {
-                  if ((apiCall.apiName === 'searchHotelsByCity' || apiCall.apiName === 'searchHotelsByGeocode') && 
-                      apiCall.responseData && 
-                      apiCall.responseData.data && 
-                      Array.isArray(apiCall.responseData.data)) {
-                    
-                    const hotelData = apiCall.responseData.data;
-                    
-                    if (hotelData && hotelData.length > 0 && !travelResults) {
-                      console.log(`Setting delayed hotel results: ${hotelData.length} hotels found`);
-                      setTravelResults(hotelData);
-                      setResultType('hotel');
-                      
-                      // Update message content with summary instead of full JSON data
-                      setMessages((prev) =>
-                        prev.map((msg) =>
-                          msg.id === assistantMessage.id
-                            ? {
-                                ...msg,
-                                content: msg.content.replace(
-                                  /```json\n[\s\S]*?\n```/, 
-                                  `🏨 I found ${hotelData.length} hotels matching your criteria. You can view the details in the sidebar.`
-                                )
-                              }
-                            : msg
-                        )
-                      );
-                    }
-                  }
-                });
-              }
-            }
-          } catch (e) {
-            console.error('Error checking for API calls:', e);
-          }
-        }, 3000);
-      }
-      
-      // When processing is complete
-      setIsProcessing(false);
-      setProcessingSteps(prev => [...prev, 'Done!']);
+      // Add final callback after everything is complete
+      setTimeout(() => {
+        // Scroll to the bottom after a brief delay
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     } catch (error) {
       console.error('Error fetching chat response:', error);
       
@@ -1822,21 +1801,20 @@ Let me know if you have any questions about this transfer service!
                 <div className="flex items-center">
                   {isProcessing && <BiLoaderAlt className="text-blue-500 dark:text-blue-400 text-xl mr-3 animate-spin" />}
                   <span className="text-blue-600 dark:text-blue-400 font-medium">
-                    {isProcessing ? 'Processing your request...' : 'Processing Complete'}
+                    {isProcessing ? 'AI Travel Agent Reasoning...' : 'AI Travel Agent Reasoning'}
                   </span>
                 </div>
                 <ChevronDown className={`h-4 w-4 text-neutral-500 transition-transform ${showProcessingSteps ? 'rotate-180' : ''}`} />
               </button>
               
               {showProcessingSteps && (
-                <ul className="text-sm space-y-2 text-gray-600 dark:text-gray-400 mt-3">
+                <div className="text-sm space-y-4 text-gray-700 dark:text-gray-300 mt-3 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
                   {processingSteps.map((step, index) => (
-                    <li key={index} className="flex items-center">
-                      <span className="mr-2 text-blue-500 dark:text-blue-400">➔</span>
+                    <div key={index} className="border-l-2 border-blue-400 dark:border-blue-500 pl-3 py-1">
                       {step}
-                    </li>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </div>
           )}
