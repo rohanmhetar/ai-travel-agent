@@ -2,6 +2,12 @@
 
 An AI-powered travel agent that uses real-time Amadeus API data to search for flights, hotels, activities, and transfers.
 
+
+
+https://github.com/user-attachments/assets/33be5328-b049-4d53-9dc4-13c44ddc816f
+
+
+
 ## Quick Setup
 
 1. **Clone & Install**
