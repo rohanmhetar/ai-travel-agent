@@ -1,4 +1,4 @@
-# Brainbase Travel Agent
+# AI Travel Agent
 
 An AI-powered travel agent that uses real-time Amadeus API data to search for flights, hotels, activities, and transfers.
 
